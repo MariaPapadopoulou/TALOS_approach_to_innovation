@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TALOS Innovation Aspects - D3.js Tree</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #f5f7fa, #e4e8f0);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 95%;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            padding: 25px;
+            box-sizing: border-box;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 400;
+        }
+        
+        .description {
+            text-align: center;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #tree-container {
+            width: 100%;
+            height: 600px;
+            overflow: auto;
+            margin: 20px 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fff;
+        }
+        
+        .node {
+            cursor: pointer;
+        }
+        
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 3px;
+        }
+        
+        .node text {
+            font: 14px 'Segoe UI', sans-serif;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            fill: #2c3e50; /* Dark blue text color */
+            font-weight: 500;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        
+        .legend-text {
+            color: #2c3e50; /* Dark blue text for legend */
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 5px;
+            pointer-events: none;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 10;
+        }
+        
+        .search-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        #search {
+            padding: 10px 15px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            color: #2c3e50; /* Dark blue text for search */
+        }
+        
+        .highlighted {
+            fill: #ffeb3b !important;
+            stroke: #f57f17 !important;
+            stroke-width: 3px !important;
+        }
+        
+        /* Ensure all text is dark blue or black */
+        .node text {
+            fill: #2c3e50 !important;
+        }
+        
+        .node circle {
+            fill: #fff !important;
+        }
+        
+        /* Additional spacing to prevent overlap */
+        .node {
+            padding: 5px;
+        }
+        
+        .node text {
+            text-shadow: 1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white;
+        }
+        
+        /* License section */
+        .license {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+            color: #6c757d;
+            border-left: 4px solid #3498db;
+        }
+        
+        .license a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .license a:hover {
+            text-decoration: underline;
+        }
+        
+        .cc-logo {
+            font-size: 24px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TALOS Innovation Aspects</h1>
+        <p class="subtitle">Interactive Tree Visualization of Innovation Drivers and Barriers</p>
+        
+        <p class="description">
+            This interactive diagram visualizes the key aspects of TALOS' innovation framework, including capacity building, 
+            drivers, and barriers. Click on nodes to expand or collapse branches. Use the controls to navigate and search.
+        </p>
+        
+        <div class="controls">
+            <button id="zoom-in">Zoom In</button>
+            <button id="zoom-out">Zoom Out</button>
+            <button id="reset-view">Reset View</button>
+            <button id="expand-all">Expand All</button>
+            <button id="collapse-all">Collapse All</button>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" id="search" placeholder="Search nodes...">
+        </div>
+        
+        <div id="tree-container"></div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #1f77b4;"></div>
+                <span class="legend-text">Capacity Building</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2ca02c;"></div>
+                <span class="legend-text">Drivers</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #d62728;"></div>
+                <span class="legend-text">Barriers</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9467bd;"></div>
+                <span class="legend-text">Sustainability</span>
+            </div>
+        </div>
+        
+        <div class="license">
+            <span class="cc-logo">©</span>
+            This work is licensed under a <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International License</a>.<br>
+            Maria Papadopoulou - TALOS AI4SSH, University of Crete
+        </div>
+    </div>
+
+    <script>
+        // TALOS innovation data structure
+        const treeData = {
+            name: "TALOS Innovation",
+            description: "Overall innovation framework of TALOS",
+            children: [
+                {
+                    name: "Capacity Building",
+                    description: "Initiatives to enhance organizational capabilities",
+                    children: [
+                        {
+                            name: "Cutting Edge Research",
+                            description: "Focus on innovative and advanced research topics"
+                        },
+                        {
+                            name: "Research Topic Federation",
+                            description: "Integration of multiple research areas"
+                        },
+                        {
+                            name: "Structural Changes",
+                            description: "Organizational and system level transformations",
+                            children: [
+                                {
+                                    name: "Organization Level",
+                                    description: "Changes at the organizational structure level"
+                                },
+                                {
+                                    name: "System Level",
+                                    description: "Changes at the overall system level"
+                                }
+                            ]
+                        },
+                        {
+                            name: "KPIs",
+                            description: "Key Performance Indicators for measurable impact"
+                        },
+                        {
+                            name: "Sustainability",
+                            description: "Creating a virtuous circle of sustainable practices",
+                            children: [
+                                {
+                                    name: "Best Practices",
+                                    description: "Implementation of proven effective methods"
+                                },
+                                {
+                                    name: "Tangible Outcomes",
+                                    description: "Focus on delivering concrete results"
+                                },
+                                {
+                                    name: "Engagement",
+                                    description: "Involving target audiences effectively"
+                                },
+                                {
+                                    name: "Measurable Impact",
+                                    description: "Quantifiable results of initiatives"
+                                },
+                                {
+                                    name: "Funding",
+                                    description: "Financial resources for sustainability"
+                                },
+                                {
+                                    name: "Long-term viability practices",
+                                    description: "Long-term maintenance strategies"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Drivers",
+                    description: "Factors that propel innovation forward",
+                    children: [
+                        {
+                            name: "Prestigious EU Funding",
+                            description: "Access to high-profile European Union funding programs"
+                        },
+                        {
+                            name: "Team Building",
+                            description: "Developing effective and collaborative teams"
+                        },
+                        {
+                            name: "Continuous Training",
+                            description: "Ongoing skill development programs"
+                        },
+                        {
+                            name: "Internationalization",
+                            description: "Expanding global presence and collaborations"
+                        },
+                        {
+                            name: "Work-place Skills in Curricula",
+                            description: "Integrating practical skills into educational programs"
+                        },
+                        {
+                            name: "Attracting International Talent",
+                            description: "Bringing in global expertise and diversity"
+                        },
+                        {
+                            name: "Clear Organizational Strategy",
+                            description: "Well-defined direction and goals"
+                        },
+                        {
+                            name: "Transformational Leadership",
+                            description: "Leadership that drives meaningful change"
+                        }
+                    ]
+                },
+                {
+                    name: "Barriers",
+                    description: "Challenges that hinder innovation progress",
+                    children: [
+                        {
+                            name: "Lack of Industry Links",
+                            description: "Insufficient connections with industry partners"
+                        },
+                        {
+                            name: "Low Salaries",
+                            description: "Inadequate compensation affecting talent retention"
+                        },
+                        {
+                            name: "Thin Talent Pool",
+                            description: "Limited availability of skilled professionals"
+                        },
+                        {
+                            name: "Unattractive Job Market",
+                            description: "Challenges in the Greek job market for talent attraction"
+                        },
+                        {
+                            name: "Risk Aversion",
+                            description: "Reluctance to take necessary risks for innovation"
+                        },
+                        {
+                            name: "Resistance to Change",
+                            description: "Organizational opposition to transformative initiatives"
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Set up the tree diagram
+        const margin = { top: 40, right: 120, bottom: 40, left: 120 };
+        const width = 1200 - margin.right - margin.left;
+        const height = 600 - margin.top - margin.bottom;
+        
+        let i = 0;
+        let duration = 750;
+        let root;
+        
+        const tree = d3.tree().size([height, width]);
+        
+        const svg = d3.select("#tree-container").append("svg")
+            .attr("width", width + margin.right + margin.left)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 2])
+            .on("zoom", function(event) {
+                svg.attr("transform", event.transform);
+            });
+        
+        d3.select("svg").call(zoom);
+        
+        // Define color scheme based on node categories
+        const colorMap = {
+            "Capacity Building": "#1f77b4",
+            "Drivers": "#2ca02c",
+            "Barriers": "#d62728",
+            "Sustainability": "#9467bd"
+        };
+        
+        function getNodeColor(d) {
+            if (d.depth === 0) return "#ff7f0e";
+            if (d.data.name in colorMap) return colorMap[d.data.name];
+            if (d.parent && d.parent.data.name in colorMap) return colorMap[d.parent.data.name];
+            if (d.parent && d.parent.parent && d.parent.parent.data.name in colorMap) 
+                return colorMap[d.parent.parent.data.name];
+            return "#17becf";
+        }
+        
+        // Initialize the tree
+        root = d3.hierarchy(treeData, d => d.children);
+        root.x0 = height / 2;
+        root.y0 = 0;
+        
+        update(root);
+        
+        // Center the tree
+        zoom.translateTo(d3.select("svg"), width / 2, height / 2);
+        
+        function update(source) {
+            const treeData = tree(root);
+            
+            const nodes = treeData.descendants();
+            const links = treeData.descendants().slice(1);
+            
+            // Normalize for fixed-depth with increased spacing
+            nodes.forEach(d => { d.y = d.depth * 220; }); // Increased from 180 to 220
+            
+            // Update the nodes
+            const node = svg.selectAll("g.node")
+                .data(nodes, d => d.id || (d.id = ++i));
+                
+            // Enter any new nodes at the parent's previous position
+            const nodeEnter = node.enter().append("g")
+                .attr("class", "node")
+                .attr("transform", d => `translate(${source.y0},${source.x0})`)
+                .on("click", click);
+                
+            nodeEnter.append("circle")
+                .attr("r", 1e-6)
+                .style("fill", d => getNodeColor(d))
+                .style("stroke", d => d3.rgb(getNodeColor(d)).darker(0.5))
+                .style("stroke-width", "2px");
+                
+            nodeEnter.append("text")
+                .attr("dy", "0.31em")
+                .attr("x", d => d.children || d._children ? -13 : 13)
+                .attr("text-anchor", d => d.children || d._children ? "end" : "start")
+                .text(d => d.data.name)
+                .style("font-weight", "bold")
+                .style("font-size", d => d.depth === 0 ? "16px" : "14px");
+                
+            // Update
+            const nodeUpdate = nodeEnter.merge(node);
+            
+            // Transition to the proper position for the node
+            nodeUpdate.transition()
+                .duration(duration)
+                .attr("transform", d => `translate(${d.y},${d.x})`);
+                
+            nodeUpdate.select("circle")
+                .attr("r", d => d.depth === 0 ? 12 : 10)
+                .style("fill", d => getNodeColor(d))
+                .style("stroke", d => d3.rgb(getNodeColor(d)).darker(0.5));
+                
+            // Remove any exiting nodes
+            const nodeExit = node.exit().transition()
+                .duration(duration)
+                .attr("transform", d => `translate(${source.y},${source.x})`)
+                .remove();
+                
+            nodeExit.select("circle").attr("r", 1e-6);
+            nodeExit.select("text").style("fill-opacity", 1e-6);
+            
+            // Update the links
+            const link = svg.selectAll("path.link")
+                .data(links, d => d.id);
+                
+            // Enter any new links at the parent's previous position
+            const linkEnter = link.enter().insert("path", "g")
+                .attr("class", "link")
+                .attr("d", d => {
+                    const o = { x: source.x0, y: source.y0 };
+                    return diagonal(o, o);
+                });
+                
+            // Update
+            const linkUpdate = linkEnter.merge(link);
+            
+            // Transition back to the parent element position
+            linkUpdate.transition()
+                .duration(duration)
+                .attr("d", d => diagonal(d, d.parent));
+                
+            // Remove any exiting links
+            link.exit().transition()
+                .duration(duration)
+                .attr("d", d => {
+                    const o = { x: source.x, y: source.y };
+                    return diagonal(o, o);
+                })
+                .remove();
+                
+            // Store the old positions for transition
+            nodes.forEach(d => {
+                d.x0 = d.x;
+                d.y0 = d.y;
+            });
+            
+            // Creates a curved (diagonal) path from parent to the child nodes
+            function diagonal(s, d) {
+                return `M ${s.y} ${s.x}
+                        C ${(s.y + d.y) / 2} ${s.x},
+                          ${(s.y + d.y) / 2} ${d.x},
+                          ${d.y} ${d.x}`;
+            }
+            
+            // Toggle children on click
+            function click(event, d) {
+                if (d.children) {
+                    d._children = d.children;
+                    d.children = null;
+                } else {
+                    d.children = d._children;
+                    d._children = null;
+                }
+                update(d);
+            }
+        }
+        
+        // Add tooltip
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+            
+        // Add node hover effect
+        svg.selectAll("g.node")
+            .on("mouseover", function(event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0.9);
+                tooltip.html(d.data.description || "No description available")
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                    
+                d3.select(this).select("circle")
+                    .transition()
+                    .duration(200)
+                    .attr("r", d => d.depth === 0 ? 16 : 14);
+            })
+            .on("mouseout", function(event, d) {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                    
+                d3.select(this).select("circle")
+                    .transition()
+                    .duration(200)
+                    .attr("r", d => d.depth === 0 ? 12 : 10);
+            });
+            
+        // Add zoom controls
+        d3.select("#zoom-in").on("click", function() {
+            d3.select("svg").transition().duration(500).call(zoom.scaleBy, 1.3);
+        });
+        
+        d3.select("#zoom-out").on("click", function() {
+            d3.select("svg").transition().duration(500).call(zoom.scaleBy, 0.7);
+        });
+        
+        d3.select("#reset-view").on("click", function() {
+            d3.select("svg").transition().duration(500).call(
+                zoom.transform,
+                d3.zoomIdentity.translate(width / 2, height / 2)
+            );
+        });
+        
+        d3.select("#expand-all").on("click", function() {
+            expandAll();
+        });
+        
+        d3.select("#collapse-all").on("click", function() {
+            collapseAll();
+        });
+        
+        function expandAll() {
+            root.each(d => {
+                if (d._children) {
+                    d.children = d._children;
+                    d._children = null;
+                }
+            });
+            update(root);
+        }
+        
+        function collapseAll() {
+            root.each(d => {
+                if (d.children && d.depth > 0) {
+                    d._children = d.children;
+                    d.children = null;
+                }
+            });
+            update(root);
+        }
+        
+        // Add search functionality
+        document.getElementById("search").addEventListener("input", function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm.length < 2) {
+                // Reset all nodes if search term is too short
+                svg.selectAll("g.node")
+                    .select("circle")
+                    .classed("highlighted", false);
+                return;
+            }
+            
+            // Highlight matching nodes
+            svg.selectAll("g.node")
+                .select("circle")
+                .classed("highlighted", d => 
+                    d.data.name.toLowerCase().includes(searchTerm)
+                );
+        });
+    </script>
+</body>
+</html>
